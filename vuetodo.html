@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app">
+      <p>
+        <input
+          type="text"
+          v-model="inputText"
+          @compositionstart="cstartHandler"
+          @compositionend="cendHandler"
+          @keyup.enter="inputHandler"
+        />
+      </p>
+      <filter-component @filter="filterHandler"></filter-component>
+      <ul>
+        <li v-for="(item,index) in filterList" :key="item.timestamp">
+          <templete v-if="editing === index ">
+            <input type="text" v-model="editingText" />
+            <button @click="completeHandler">完成</button>
+            <button @click="cancelHandler">取消</button>
+          </templete>
+          <template v-else>
+            <input type="checkbox" v-model="item.status" />
+            {{ item.content }}
+            <button @click="editHandler(item)">修改</button>
+            <button @click="deleteHandler(item)">刪除</button>
+          </template>
+        </li>
+      </ul>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.js"></script>
+    <script>
+      Vue.component("FilterComponent", {
+        data: function () {
+          return {
+            buttonList: [
+              { text: "全部", value: "all" },
+              { text: "未完成", value: "open" },
+              { text: "完成", value: "done" },
+            ],
+          };
+        },
+        template: `
+         <p>
+            <button v-for="item of buttonList" :key="item.text" @click="$emit('filter',item.value)">{{item.text}}</button>
+         </P>
+      `,
+        // <p>
+        //    <button @click="show = 'all'">全部</button>
+        //    <button @click="show = 'open'">未完成</button>
+        //    <button @click="show = 'done'">完成</button>
+        // </p>
+      });
+
+      // Create Read Delete Update
+      new Vue({
+        el: "#app",
+        data: {
+          // 輸入文字
+          inputText: "",
+          // 所有資料
+          list: [],
+          // 輸入法狀態
+          compositionStatus: false,
+          // 修改資料對象
+          editing: null,
+          // 修改內容
+          editingText: "",
+          // 顯示類型
+          show: "all",
+        },
+        computed: {
+          //Read
+          filterList() {
+            //all,notdone,done
+            if (this.show === "all") {
+              return this.list;
+            } else if (this.show === "open") {
+              return this.list.filter((item) => {
+                return item.status === false;
+              });
+            } else if (this.show === "done") {
+              return this.list.filter((item) => {
+                return item.status === true;
+              });
+            } else {
+              return [];
+            }
+          },
+        },
+        methods: {
+          // 篩選
+          filterHandler(value) {
+            this.show = value;
+          },
+          // Create
+          cstartHandler() {
+            this.compositionStatus = true;
+          },
+          cendHandler() {
+            this.compositionStatus = false;
+          },
+          inputHandler() {
+            if (this.compositionStatus) return false;
+            this.list.push({
+              timestamp: new Date().getTime(),
+              status: false,
+              content: this.inputText,
+            });
+            this.inputText = "";
+          },
+          //刪除
+          deleteHandler(item) {
+            this.list = this.list.filter((target) => {
+              return target != item;
+            });
+          },
+          editHandler(index) {
+            this.editing = index;
+            this.editingText;
+          },
+          completeHandler() {
+            this.list[this.editing].content = this.editingText;
+            this.editingText = " ";
+            this.editing = null;
+          },
+          cancelHandler() {
+            this.editingText = " ";
+            this.editing = null;
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
