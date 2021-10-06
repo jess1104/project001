@@ -11,19 +11,18 @@
       <input-component @custom-input="inputHandler" v-model="inputText"></input-component>
       <filter-component @filter="filterHandler"></filter-component>
       <ul>
-        <li v-for="(item,index) in filterList" :key="item.timestamp">
-          <templete v-if="editing === index ">
-            <input type="text" v-model="editingText" />
-            <button @click="completeHandler">完成</button>
-            <button @click="cancelHandler">取消</button>
-          </templete>
-          <template v-else>
-            <input type="checkbox" v-model="item.status" />
-            {{ item.content }}
-            <button @click="editHandler(item)">修改</button>
-            <button @click="deleteHandler(item)">刪除</button>
-          </template>
-        </li>
+        <li
+          is="list-item-component"
+          v-for="(item,index) in filterList"
+          :key="item.timestamp"
+          :item="item"
+          :editing="editing"
+          @change="changeHandler"
+          @delete="deleteHandler"
+          @edit="editHandler"
+          @complete="completeHandler"
+          @cancel="cancelHandler"
+        ></li>
       </ul>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.js"></script>
@@ -39,11 +38,11 @@
         //1.資料存外面(inputText)，引用進來元件，外面想接v-model裡面用pops:['value']
         props: ["value"],
         template: `
-              <p><input type="text" 
+              <p><input type="text"
               v-bind:value="value"
               v-on:input="$emit('input',$event.target.value)"
-              @compositionstart="cstartHandler"      
-              @compositionend="cendHandler" 
+              @compositionstart="cstartHandler"
+              @compositionend="cendHandler"
               @keyup.enter="inputHandler"></p>
             `,
         methods: {
@@ -74,10 +73,10 @@
         },
         template: `
           <p>
-            <input type="text" 
+            <input type="text"
               v-model="inputText"
-              @compositionstart="cstartHandler"      
-              @compositionend="cendHandler" 
+              @compositionstart="cstartHandler"
+              @compositionend="cendHandler"
               @keyup.enter="inputHandler">
           </p>
         `,
@@ -119,7 +118,54 @@
         //    <button @click="show = 'done'">完成</button>
         // </p>
       });
-
+      Vue.component("list-item-component", {
+        data: function () {
+          return {
+            // 修改內容
+            editingText: "",
+          };
+        },
+        props: ["item", "editing"],
+        template: `
+        <li>
+        <templete v-if="editing === item ">
+          <input type="text" v-model="editingText">
+          <button @click="completeHandler">完成</button>
+          <button @click="cancelHandler">取消</button>
+        </templete>
+        <template v-else>
+          <input type="checkbox" v-model="item.status">
+          {{ item.content }}
+          <button @click="editHandler(item)">修改</button>
+          <button @click="deleteHandler(item)">刪除</button>
+        </template>
+    </li>
+  `,
+        methods: {
+          //刪除
+          deleteHandler(item) {
+            this.$emit("delete", item);
+            // this.list = this.list.filter((target) => {
+            //   return target != item;
+            // })
+          },
+          //update
+          editHandler(item) {
+            this.$emit("edit", item);
+            // this.editing = item
+            this.editingText = item.content;
+          },
+          completeHandler() {
+            this.$emit("complete", this.editingText);
+            // this.list[this.editing].content = this.editingText
+            this.cancelHandler();
+          },
+          cancelHandler() {
+            this.editingText = " ";
+            this.$emit("cancel");
+          },
+        },
+      });
       // Create Read Delete Update
       new Vue({
         el: "#app",
@@ -128,12 +174,10 @@
           inputText: "",
           // 所有資料
           list: [],
-          // 輸入法狀態
-          compositionStatus: false,
+
           // 修改資料對象
           editing: null,
-          // 修改內容
-          editingText: "",
+
           // 顯示類型
           show: "all",
         },
@@ -157,24 +201,25 @@
           },
         },
         methods: {
-          // 篩選
+          //給乙個filter 函式
           filterHandler(value) {
             this.show = value;
           },
-          // Create
-          cstartHandler() {
-            this.compositionStatus = true;
-          },
-          cendHandler() {
-            this.compositionStatus = false;
-          },
+          //在一個新的inputHandler
           inputHandler() {
             this.list.push({
               timestamp: new Date().getTime(),
               status: false,
               content: this.inputText,
             });
-            this.inputText = "";
+            this.inputText = " ";
+          },
+          input2Handler(value) {
+            this.list.push({
+              timestamp: new Date().getTime(),
+              status: false,
+              content: value,
+            });
           },
           //刪除
           deleteHandler(item) {
@@ -182,17 +227,14 @@
               return target != item;
             });
           },
-          editHandler(index) {
-            this.editing = index;
-            this.editingText;
+          //update
+          editHandler(item) {
+            this.editing = item;
           },
-          completeHandler() {
-            this.list[this.editing].content = this.editingText;
-            this.editingText = " ";
-            this.editing = null;
+          completeHandler(value) {
+            this.editing.content = value;
           },
           cancelHandler() {
-            this.editingText = " ";
             this.editing = null;
           },
         },
